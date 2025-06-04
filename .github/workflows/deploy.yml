@@ -1,0 +1,32 @@
+name: Deploy SmartStat ZIP
+
+on:
+  push:
+    paths:
+      - '*.zip'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout update repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install unzip
+        run: sudo apt-get install unzip
+
+      - name: Extract ZIP
+        run: |
+          ZIP_FILE=$(ls *.zip | head -n 1)
+          unzip "$ZIP_FILE" -d extracted
+          rm "$ZIP_FILE"
+
+      - name: Run deployment script
+        run: python scripts/deploy.py
+        env:
+          GH_TOKEN: ${{ secrets.REPO_PUSH_TOKEN }}
