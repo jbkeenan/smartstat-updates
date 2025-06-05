@@ -86,3 +86,52 @@ jobs:
             git commit -m "Update frontend from ZIP deployment"
             git push
           fi
+          
+      - name: Deploy Backend
+        if: success()
+        run: |
+          # Debug information
+          echo "Current directory: $(pwd)"
+          echo "Extracted contents:"
+          ls -la extracted
+          
+          # Check if backend directory exists
+          if [ -d "extracted/new_structure/backend" ]; then
+            echo "Found backend directory at extracted/new_structure/backend"
+            BACKEND_DIR="extracted/new_structure/backend"
+          elif [ -d "extracted/backend" ]; then
+            echo "Found backend directory at extracted/backend"
+            BACKEND_DIR="extracted/backend"
+          else
+            echo "ERROR: Could not find backend directory in extracted ZIP"
+            find extracted -type d | sort
+            exit 1
+          fi
+          
+          # Clone backend repository
+          git clone https://x-access-token:${{ secrets.REPO_ACCESS_TOKEN }}@github.com/jbkeenan/smartstatback.git backend_repo
+          
+          # Configure Git
+          cd backend_repo
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          
+          # Remove all existing files (except .git )
+          find . -mindepth 1 -not -path "./.git*" -delete
+          
+          # Copy new files
+          echo "Copying files from $BACKEND_DIR to backend repository"
+          cp -r ../$BACKEND_DIR/* .
+          
+          # Add, commit and push
+          git add -A
+          git status
+          
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            echo "Committing and pushing changes"
+            git commit -m "Update backend from ZIP deployment"
+            git push
+          fi
