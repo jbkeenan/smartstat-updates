@@ -1,0 +1,53 @@
+name: Update Continuity Repository
+
+on:
+  push:
+    paths:
+      - '**.zip'
+
+jobs:
+  update-continuity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout update repo
+        uses: actions/checkout@v3
+        
+      - name: Find latest ZIP file
+        id: find-zip
+        run: |
+          LATEST_ZIP=$(ls -t *.zip | head -1)
+          echo "::set-output name=zip_file::$LATEST_ZIP"
+          
+      - name: Extract ZIP file
+        run: |
+          mkdir -p extracted
+          unzip ${{ steps.find-zip.outputs.zip_file }} -d extracted
+          
+      - name: Checkout continuity repo
+        uses: actions/checkout@v3
+        with:
+          repository: jbkeenan/smart-thermostat-continuity
+          token: ${{ secrets.CONTINUITY_PAT }}
+          path: continuity
+          
+      - name: Update continuity repo
+        run: |
+          # Copy frontend and backend code
+          cp -r extracted/frontend/* continuity/frontend/ || true
+          cp -r extracted/backend/* continuity/backend/ || true
+          
+          # Copy the ZIP file itself to deployment/packages
+          mkdir -p continuity/deployment/packages
+          cp ${{ steps.find-zip.outputs.zip_file }} continuity/deployment/packages/
+          
+          # Add timestamp to track updates
+          echo "Last updated: $(date)" > continuity/deployment/last_update.txt
+          
+      - name: Commit and push changes
+        run: |
+          cd continuity
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add .
+          git commit -m "Update from ${{ steps.find-zip.outputs.zip_file }}" || echo "No changes to commit"
+          git push
