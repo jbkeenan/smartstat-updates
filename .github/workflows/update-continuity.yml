@@ -26,7 +26,7 @@ jobs:
       - name: Checkout continuity repo
         uses: actions/checkout@v3
         with:
-          repository: yourusername/smart-thermostat-continuity
+          repository: jbkeenan/smart-thermostat-continuity
           token: ${{ secrets.CONTINUITY_PAT }}
           path: continuity
           
